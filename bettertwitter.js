@@ -64,8 +64,13 @@ function moveSearchBar(leftSidebar, rightSidebar) {
         return form.getAttribute("role") == "search";
     })), 4);
 
-    leftSidebar.appendChild(searchBar);
-    searchBar.style.width = leftSidebar.offsetWidth + "px";
+    var nav = firstOf([...leftSidebar.getElementsByTagName("nav")].filter(function(element) {
+        return element.getAttribute("role") == "navigation";
+    }));
+
+    nav.insertBefore(searchBar, nav.children[0]);
+    searchBar.style.width = nav.offsetWidth + "px";
+    searchBar.style.position = "static";
 }
 
 
