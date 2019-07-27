@@ -59,25 +59,12 @@ function removePromotedTweets(context) {
             }).length != 0;
         }).length != 0;
     }).forEach(function(promotedTweet) {
-        getParent(promotedTweet, 4).style.backgroundColor = "green";
-    });
-}
-
-
-function removeRightSidebar(context) {
-    var spans = context.getElementsByTagName("span");
-    spans.forEach(function(span) {
-        if(span.innerHTML == "Trends for you") {
-            var trendsContainer = getParent(span, 4);
-            trendsContainer.style.display = "none";
-            span.innerHTML = "Lorem ipsum!";
-        }
+        getParent(promotedTweet, 4).style.display = "none";
     });
 }
 
 
 function addCustomCSS() {
-    // var css = "div[aria-label=\"Timeline: Trending now\"] { display: none; }";
     var css = "div[data-testid=\"sidebarColumn\"] { display: none; } div[data-testid=\"primaryColumn\"] { max-width: 100%; } a[aria-label=\"Twitter\"] { display: none; }";
     var style = document.createElement("style");
     document.head.appendChild(style);
