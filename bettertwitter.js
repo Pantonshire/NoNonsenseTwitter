@@ -39,6 +39,36 @@ function findTweetsSection(context) {
 }
 
 
+function findLeftSidebar(context) {
+    var sidebarContainer = firstOf([...context.getElementsByTagName("header")].filter(function(header) {
+        return header.getAttribute("role") == "banner";
+    }));
+
+    var twitterButton = firstOf([...sidebarContainer.getElementsByTagName("a")].filter(function(link) {
+        return link.getAttribute("aria-label") == "Twitter";
+    }));
+
+    return getParent(twitterButton, 3);
+}
+
+
+function findRightSidebar(context) {
+    return firstOf([...context.getElementsByTagName("div")].filter(function(div) {
+        return div.getAttribute("data-testid") == "sidebarColumn";
+    }));
+}
+
+
+function moveSearchBar(leftSidebar, rightSidebar) {
+    var searchBar = getParent(firstOf([...rightSidebar.getElementsByTagName("form")].filter(function(form) {
+        return form.getAttribute("role") == "search";
+    })), 4);
+
+    leftSidebar.appendChild(searchBar);
+    searchBar.style.width = leftSidebar.offsetWidth + "px";
+}
+
+
 function replaceLinks(context) {
     [...context.getElementsByTagName("a")].filter(function(link) {
         return !link.classList.contains(linkCheckedClass);
@@ -76,6 +106,10 @@ function addCustomCSS() {
 function runBetterTwitter(tweets) {
     replaceLinks(tweets);
     removePromotedTweets(tweets);
+
+    var leftSidebar = findLeftSidebar(document);
+    var rightSidebar = findRightSidebar(document);
+    moveSearchBar(leftSidebar, rightSidebar);
 
     var tweetObserver = new MutationObserver(function(mutationsList, observer) {
         console.log("Mutations at " + date.getTime());
