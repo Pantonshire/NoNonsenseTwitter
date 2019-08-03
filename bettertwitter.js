@@ -1,14 +1,28 @@
-var date = new Date();
-
-
-console.log("Starting Better Twitter " + date.getTime());
+var startTime = Date.now();
+console.log("Starting Better Twitter " + startTime);
 
 
 var accessibleListRe = /accessible-list-\d+/;
 var analyticsRe = new RegExp("https:\/\/t\.co\/.*");
 var linkCheckedClass = "btchecked";
 
+var customCSS = `
+    div[data-testid="sidebarColumn"] {
+        display: none !important;
+    }
+    
+    div[data-testid="primaryColumn"] {
+        max-width: 100% !important;
+    }
+    
+    a[aria-label="Twitter"] {
+        display: none !important;
+    }
+`;
 
+
+//Returns the parent of the element the specified number of layers up the DOM tree, where 1 would be the
+//direct parent of the element.
 function getParent(element, layer) {
     if(element == null) {
         return null;
@@ -27,11 +41,76 @@ function getParent(element, layer) {
 }
 
 
+//Returns the first element of the array, or null if the array is empty.
 function firstOf(array) {
     return array.length ? array[0] : null;
 }
 
 
+//Run a task when an element is successfully found by the given function.
+function waitForElement(context, findElement, onFound) {
+    var element = findElement(context);
+
+    if(element) {
+        onFound(element);
+    }
+    
+    else {
+        var mutationObserver = new MutationObserver(function(mutationsList, observer) {
+            element = findElement(context);
+
+            if(element) {
+                observer.disconnect();
+                onFound(element);
+            }
+        });
+
+        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
+    }
+}
+
+
+//Run a task when elements are successfully found by all of the given functions.
+function waitForElements(context, findElements, onFound) {
+    var elements = findElements.map(function(findElement) { return findElement(context); });
+
+    if(elements.includes(null)) {
+        var mutationObserver = new MutationObserver(function(mutationsList, observer) {
+            for(i = 0; i < elements.length; i++) {
+                if(elements[i] === null) {
+                    elements[i] = findElements[i](context);
+                }
+            }
+
+            if(!elements.includes(null)) {
+                observer.disconnect();
+                onFound(elements);
+            }
+        });
+
+        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
+    }
+    
+    else {
+        onFound(elements);
+    }
+}
+
+
+function getCurrentPath() {
+    return window.location.pathname;
+}
+
+
+//Main static container — directly mutates on page change
+function findMainStaticContainer(context) {
+    return firstOf([...context.getElementsByTagName("main")].filter(function(element) {
+        return element.getAttribute("role") == "main";
+    }));
+}
+
+
+//Searches the context element for the area where the tweet elements are added.
 function findTweetsSection(context) {
     return getParent(firstOf([...context.getElementsByTagName("h1")].filter(function(element) {
         return accessibleListRe.exec(element.id) && element.textContent == "Your Home Timeline";
@@ -39,10 +118,15 @@ function findTweetsSection(context) {
 }
 
 
+//Searches the context element for the left sidebar.
 function findLeftSidebar(context) {
     var sidebarContainer = firstOf([...context.getElementsByTagName("header")].filter(function(header) {
         return header.getAttribute("role") == "banner";
     }));
+
+    if(!sidebarContainer) {
+        return null;
+    }
 
     var twitterButton = firstOf([...sidebarContainer.getElementsByTagName("a")].filter(function(link) {
         return link.getAttribute("aria-label") == "Twitter";
@@ -52,6 +136,7 @@ function findLeftSidebar(context) {
 }
 
 
+//Searches the context element for the right sidebar.
 function findRightSidebar(context) {
     return firstOf([...context.getElementsByTagName("div")].filter(function(div) {
         return div.getAttribute("data-testid") == "sidebarColumn";
@@ -59,11 +144,23 @@ function findRightSidebar(context) {
 }
 
 
-function moveSearchBar(leftSidebar, rightSidebar) {
-    var searchBar = getParent(firstOf([...rightSidebar.getElementsByTagName("form")].filter(function(form) {
+//Searches the context element for the search bar.
+function findSearchBar(context) {
+    return getParent(firstOf([...context.getElementsByTagName("form")].filter(function(form) {
         return form.getAttribute("role") == "search";
     })), 4);
+}
 
+
+function findComposeBox(context) {
+    return getParent(firstOf([...context.getElementsByTagName("div")].filter(function(div) {
+        return div.getAttribute("data-testid") == "toolBar";
+    })), 4);
+}
+
+
+//Moves the search bar to the left sidebar.
+function moveSearchBar(leftSidebar, searchBar) {
     var nav = firstOf([...leftSidebar.getElementsByTagName("nav")].filter(function(element) {
         return element.getAttribute("role") == "navigation";
     }));
@@ -74,6 +171,8 @@ function moveSearchBar(leftSidebar, rightSidebar) {
 }
 
 
+//Finds all of the links within the context element which direct the user to Twitter analytics and have the actual
+//destination in the title, and replaces the href with the actual destination, thus bypassing Twitter analytics.
 function replaceLinks(context) {
     [...context.getElementsByTagName("a")].filter(function(link) {
         return !link.classList.contains(linkCheckedClass);
@@ -86,6 +185,7 @@ function replaceLinks(context) {
 }
 
 
+//Searches the context for promoted tweets and sets their display to none.
 function removePromotedTweets(context) {
     [...context.getElementsByTagName("article")].filter(function(tweet) {
         return [...tweet.getElementsByTagName("svg")].filter(function(svg) {
@@ -99,12 +199,42 @@ function removePromotedTweets(context) {
 }
 
 
+//Reduces the width of the conversation block.
+function squashConversation(context) {
+    var conversation = firstOf([...context.getElementsByTagName("div")].filter(function(article) {
+        return article.getAttribute("aria-label") == "Timeline: Conversation";
+    }));
+
+    conversation.style.marginLeft = "auto";
+    conversation.style.marginRight = "auto";
+    conversation.style.width = "80%";
+}
+
+
+//Adds a left border to the specified sidebar.
+function addLeftSidebarBorder(context) {
+    var outerLeftSidebar = getParent(context, 1);
+    outerLeftSidebar.style.borderColor = "rgb(230, 236, 240)";
+    outerLeftSidebar.style.borderStyle = "solid";
+    outerLeftSidebar.style.borderLeftWidth = "1px";
+}
+
+
+function reduceSidebarTextSize(context) {
+    [...context.getElementsByTagName("span")].filter(function(element) {
+        return element.textContent != "Tweet";
+    }).forEach(function(element) {
+        element.style.fontWeight = "lighter";
+    });
+}
+
+
+//Adds the custom CSS to the page's head in a new <style> tag.
 function addCustomCSS() {
-    var css = "div[data-testid=\"sidebarColumn\"] { display: none; } div[data-testid=\"primaryColumn\"] { max-width: 100%; } a[aria-label=\"Twitter\"] { display: none; }";
     var style = document.createElement("style");
     document.head.appendChild(style);
     style.type = "text/css";
-    style.appendChild(document.createTextNode(css));
+    style.appendChild(document.createTextNode(customCSS));
 }
 
 
@@ -114,13 +244,17 @@ function runBetterTwitter(tweets) {
 
     var leftSidebar = findLeftSidebar(document);
     var rightSidebar = findRightSidebar(document);
+    
     moveSearchBar(leftSidebar, rightSidebar);
+    addLeftSidebarBorder(leftSidebar);
 
     var tweetObserver = new MutationObserver(function(mutationsList, observer) {
         console.log("Mutations at " + date.getTime());
         console.log(mutationsList);
+
         removePromotedTweets(tweets);
         replaceLinks(tweets);
+
         console.log("Mutations handled");
     });
 
@@ -128,27 +262,62 @@ function runBetterTwitter(tweets) {
 }
 
 
-addCustomCSS();
-console.log("Custom CSS added");
+function runTestVersion() {
+    addCustomCSS();
+    console.log("Custom CSS added");
 
-var tweets = findTweetsSection(document);
+    // squashConversation(document);
 
-if(tweets) {
-    console.log("Tweet section found immediately");
-    runBetterTwitter(tweets);
-} else {
-    var tweetsSectionLoadObserver = new MutationObserver(function(mutationsList, observer) {
-        tweets = findTweetsSection(document);
-        if(tweets) {
-            console.log("Tweet section found on mutation, disconnecting observer");
-            observer.disconnect();
-            runBetterTwitter(tweets);
-        } else {
-            console.log("Tweet section not found on mutation");
-        }
-    });
+    var tweets = findTweetsSection(document);
 
-    tweetsSectionLoadObserver.observe(document, { attributes: false, childList: true, subtree: true });
+    if(tweets) {
+        console.log("Tweet section found immediately");
+        runBetterTwitter(tweets);
+    } else {
+        var tweetsSectionLoadObserver = new MutationObserver(function(mutationsList, observer) {
+            tweets = findTweetsSection(document);
+            if(tweets) {
+                console.log("Tweet section found on mutation, disconnecting observer");
+                observer.disconnect();
+                runBetterTwitter(tweets);
+            } else {
+                console.log("Tweet section not found on mutation");
+            }
+        });
+
+        tweetsSectionLoadObserver.observe(document, { attributes: false, childList: true, subtree: true });
+    }
+
+    console.log("Better Twitter running " + date.getTime());
 }
 
-console.log("Better Twitter running " + date.getTime());
+
+addCustomCSS();
+
+waitForElement(document, findMainStaticContainer, function(mainContainer) {
+
+});
+
+waitForElements(document, [findLeftSidebar, findRightSidebar], function(elements) {
+    var leftSidebar = elements[0];
+    var rightSidebar = elements[1];
+
+    waitForElement(rightSidebar, findSearchBar, function(searchBar) {
+        moveSearchBar(leftSidebar, searchBar);
+    });
+
+    addLeftSidebarBorder(leftSidebar);
+    reduceSidebarTextSize(leftSidebar);
+});
+
+waitForElement(document, findComposeBox, function(composeBox) {
+    composeBox.style.width = "80%";
+    composeBox.style.marginLeft = "auto";
+    composeBox.style.marginRight = "auto";
+});
+
+
+var endTime = Date.now();
+var elapsed = endTime - startTime;
+console.log("Ran in " + elapsed + " ms");
+
