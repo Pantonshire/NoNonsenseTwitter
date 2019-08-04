@@ -286,18 +286,6 @@ function removePromotedTweets(context) {
 }
 
 
-//Reduces the width of the conversation block.
-function squashConversation(context) {
-    var conversation = firstOf([...context.getElementsByTagName("div")].filter(function(article) {
-        return article.getAttribute("aria-label") == "Timeline: Conversation";
-    }));
-
-    conversation.style.marginLeft = "auto";
-    conversation.style.marginRight = "auto";
-    conversation.style.width = "80%";
-}
-
-
 //Adds a left border to the specified sidebar.
 function addLeftSidebarBorder(context) {
     var outerLeftSidebar = getParent(context, 1);
@@ -363,7 +351,8 @@ function handleMainPage(context) {
     });
 
     waitForElement(context, true, findComposeBox, function(composeBox) {
-        composeBox.style.width = "80%";
+        composeBox.style.width = "100%";
+        // composeBox.style.maxWidth = "600px";
         composeBox.style.marginLeft = "auto";
         composeBox.style.marginRight = "auto";
     });
@@ -384,7 +373,7 @@ function handleConversationPage(context) {
         function(conversation) {
             conversation.style.marginLeft = "auto";
             conversation.style.marginRight = "auto";
-            conversation.style.width = "80%";
+            conversation.style.width = "60%";
 
             replaceLinks(conversation);
 
@@ -445,6 +434,29 @@ waitForElements(document, false, [findLeftSidebar, findRightSidebar], function(e
     // waitForElement(rightSidebar, findSearchBar, function(searchBar) {
     //     moveSearchBar(leftSidebar, searchBar);
     // });
+
+    waitForElement(leftSidebar, true,
+        function(context) {
+            return getParent(firstOf([...context.getElementsByTagName("nav")].filter(function(element) {
+                return element.getAttribute("role") == "navigation";
+            })), 2);
+        },
+
+        function(leftSidebarContentContainer) {
+            //Move footer from right sidebar to left sidebar
+            waitForElement(rightSidebar, true,
+                function(context) {
+                    return getParent(firstOf([...context.getElementsByTagName("nav")].filter(function(nav) {
+                        return nav.getAttribute("aria-label") == "Footer";
+                    })), 1);
+                },
+            
+                function(footer) {
+                    leftSidebarContentContainer.appendChild(footer);
+                }
+            );
+        }
+    );
 
     addLeftSidebarBorder(leftSidebar);
     reduceSidebarTextSize(leftSidebar);
