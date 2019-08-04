@@ -7,6 +7,7 @@ var accessibleListRe = /accessible-list-\d+/;
 var analyticsRe = new RegExp("https:\/\/t\.co\/.*");
 var linkCheckedClass = "btchecked";
 
+var photoLocationRe = /^\/.+\/status\/\d+\/photo\/\d+/;
 var statusLocationRe = /^\/.+\/status\/\d+/;
 
 var customCSS = `
@@ -125,11 +126,11 @@ function waitForElement(context, pageDependent, findElement, onFound) {
             }
         });
 
+        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
+
         if(pageDependent) {
             pushMutationObserver(mutationObserver);
         }
-
-        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
     }
 }
 
@@ -158,11 +159,11 @@ function waitForElements(context, pageDependent, findElements, onFound, selfCont
             }
         });
 
+        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
+
         if(pageDependent) {
             pushMutationObserver(mutationObserver);
         }
-
-        mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
     }
     
     else {
@@ -182,6 +183,7 @@ function getLocation() {
     else if(pathName == "/compose/tweet") { return "tweet"; }
     else if(pathName == "/search-advanced") { return "advanced-search"; }
     else if(pathName.startsWith("/search")) { return "search"; }
+    else if(photoLocationRe.exec(pathName)) { return "photo"; }
     else if(statusLocationRe.exec(pathName)) { return "status"; }
     return pathName;
 }
@@ -340,11 +342,22 @@ function handlePage(mainContainer, location) {
 function handleMainPage(context) {
     console.log("Handle main page");
 
-    //todo: add any mutation observers to observers array
+    waitForElement(context, true, findTweetsSection, function(tweetsSection) {
+        replaceLinks(tweetsSection);
+        removePromotedTweets(tweetsSection);
 
-    // waitForElement(context, true, findTweetsSection, function(tweetsSection) {
-
-    // });
+        var tweetObserver = new MutationObserver(function(mutationsList, observer) {
+            console.log("Tweet mutations at " + Date.now());
+    
+            removePromotedTweets(tweetsSection);
+            replaceLinks(tweetsSection);
+    
+            console.log("Mutations handled");
+        });
+    
+        tweetObserver.observe(tweetsSection, { attributes: false, childList: true, subtree: true });
+        pushMutationObserver(tweetObserver);
+    });
 
     waitForElement(context, true, findComposeBox, function(composeBox) {
         composeBox.style.width = "80%";
@@ -370,60 +383,6 @@ function handleConversationPage(context) {
             conversation.style.width = "80%";
         }
     );
-}
-
-
-function runBetterTwitter(tweets) {
-    replaceLinks(tweets);
-    removePromotedTweets(tweets);
-
-    var leftSidebar = findLeftSidebar(document);
-    var rightSidebar = findRightSidebar(document);
-    
-    moveSearchBar(leftSidebar, rightSidebar);
-    addLeftSidebarBorder(leftSidebar);
-
-    var tweetObserver = new MutationObserver(function(mutationsList, observer) {
-        console.log("Mutations at " + date.getTime());
-        console.log(mutationsList);
-
-        removePromotedTweets(tweets);
-        replaceLinks(tweets);
-
-        console.log("Mutations handled");
-    });
-
-    tweetObserver.observe(tweets, { attributes: false, childList: true, subtree: true });
-}
-
-
-function runTestVersion() {
-    addCustomCSS();
-    console.log("Custom CSS added");
-
-    // squashConversation(document);
-
-    var tweets = findTweetsSection(document);
-
-    if(tweets) {
-        console.log("Tweet section found immediately");
-        runBetterTwitter(tweets);
-    } else {
-        var tweetsSectionLoadObserver = new MutationObserver(function(mutationsList, observer) {
-            tweets = findTweetsSection(document);
-            if(tweets) {
-                console.log("Tweet section found on mutation, disconnecting observer");
-                observer.disconnect();
-                runBetterTwitter(tweets);
-            } else {
-                console.log("Tweet section not found on mutation");
-            }
-        });
-
-        tweetsSectionLoadObserver.observe(document, { attributes: false, childList: true, subtree: true });
-    }
-
-    console.log("Better Twitter running " + date.getTime());
 }
 
 
