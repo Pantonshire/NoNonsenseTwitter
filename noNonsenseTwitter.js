@@ -1,7 +1,3 @@
-var startTime = Date.now();
-console.log("Starting Better Twitter " + startTime);
-
-
 var accessibleListRe = /accessible-list-\d+/;
 
 var analyticsRe = new RegExp("https:\/\/t\.co\/.*");
@@ -78,7 +74,6 @@ function findChild(context, childrenIndices) {
 
 function pushMutationObserver(observer) {
     mutationObservers.push(observer);
-    //console.log("Push operation: " + mutationObservers);
 }
 
 
@@ -88,7 +83,6 @@ function removeMutationObserver(observer) {
         observer.disconnect();
         mutationObservers.splice(removeIndex, 1);
     }
-    //console.log("Remove operation: " + mutationObservers);
 }
 
 
@@ -98,7 +92,6 @@ function clearMutationObservers() {
     });
 
     mutationObservers = [];
-    //console.log("Clear operation: " + mutationObservers);
 }
 
 
@@ -331,19 +324,13 @@ function handlePage(mainContainer, location) {
 
 
 function handleMainPage(context) {
-    //console.log("Handle main page");
-
     waitForElement(context, true, findTweetsSection, function(tweetsSection) {
         replaceLinks(tweetsSection);
         removePromotedTweets(tweetsSection);
 
         var tweetObserver = new MutationObserver(function(mutationsList, observer) {
-            //console.log("Tweet mutations at " + Date.now());
-    
             removePromotedTweets(tweetsSection);
             replaceLinks(tweetsSection);
-    
-            //console.log("Mutations handled");
         });
     
         tweetObserver.observe(tweetsSection, { attributes: false, childList: true, subtree: true });
@@ -352,7 +339,6 @@ function handleMainPage(context) {
 
     waitForElement(context, true, findComposeBox, function(composeBox) {
         composeBox.style.width = "100%";
-        // composeBox.style.maxWidth = "600px";
         composeBox.style.marginLeft = "auto";
         composeBox.style.marginRight = "auto";
     });
@@ -360,8 +346,6 @@ function handleMainPage(context) {
 
 
 function handleConversationPage(context) {
-    //console.log("Handle conversation page");
-
     //Squash conversation box
     waitForElement(context, true,
         function(context) {
@@ -430,11 +414,6 @@ waitForElements(document, false, [findLeftSidebar, findRightSidebar], function(e
     var leftSidebar = elements[0];
     var rightSidebar = elements[1];
 
-    // Search bar currently does not work when moved
-    // waitForElement(rightSidebar, findSearchBar, function(searchBar) {
-    //     moveSearchBar(leftSidebar, searchBar);
-    // });
-
     waitForElement(leftSidebar, true,
         function(context) {
             return getParent(firstOf([...context.getElementsByTagName("nav")].filter(function(element) {
@@ -461,9 +440,3 @@ waitForElements(document, false, [findLeftSidebar, findRightSidebar], function(e
     addLeftSidebarBorder(leftSidebar);
     reduceSidebarTextSize(leftSidebar);
 });
-
-
-var endTime = Date.now();
-var elapsed = endTime - startTime;
-console.log("Ran in " + elapsed + " ms");
-
