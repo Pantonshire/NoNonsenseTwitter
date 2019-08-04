@@ -381,6 +381,15 @@ function handleConversationPage(context) {
             conversation.style.marginLeft = "auto";
             conversation.style.marginRight = "auto";
             conversation.style.width = "80%";
+
+            replaceLinks(conversation);
+
+            var mutationObserver = new MutationObserver(function(mutationsList, observer) {
+                replaceLinks(conversation);
+            });
+        
+            mutationObserver.observe(conversation, { attributes: false, childList: true, subtree: true });
+            pushMutationObserver(mutationObserver);
         }
     );
 }
