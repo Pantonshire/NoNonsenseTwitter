@@ -78,7 +78,7 @@ function findChild(context, childrenIndices) {
 
 function pushMutationObserver(observer) {
     mutationObservers.push(observer);
-    console.log("Push operation: " + mutationObservers);
+    //console.log("Push operation: " + mutationObservers);
 }
 
 
@@ -88,7 +88,7 @@ function removeMutationObserver(observer) {
         observer.disconnect();
         mutationObservers.splice(removeIndex, 1);
     }
-    console.log("Remove operation: " + mutationObservers);
+    //console.log("Remove operation: " + mutationObservers);
 }
 
 
@@ -98,7 +98,7 @@ function clearMutationObservers() {
     });
 
     mutationObservers = [];
-    console.log("Clear operation: " + mutationObservers);
+    //console.log("Clear operation: " + mutationObservers);
 }
 
 
@@ -189,7 +189,7 @@ function getLocation() {
 }
 
 
-//Main static container — directly mutates on page change
+//Main static container — directly mutates on page change.
 function findMainStaticContainer(context) {
     return firstOf([...context.getElementsByTagName("main")].filter(function(element) {
         return element.getAttribute("role") == "main";
@@ -197,7 +197,7 @@ function findMainStaticContainer(context) {
 }
 
 
-//Searches the context element for the area where the tweet elements are added.
+//Searches the context element for the area where the tweet elements are added. Returns null if not found.
 function findTweetsSection(context) {
     return getParent(firstOf([...context.getElementsByTagName("h1")].filter(function(element) {
         return accessibleListRe.exec(element.id) && element.textContent == "Your Home Timeline";
@@ -205,7 +205,7 @@ function findTweetsSection(context) {
 }
 
 
-//Searches the context element for the left sidebar.
+//Searches the context element for the left sidebar. Returns null if not found.
 function findLeftSidebar(context) {
     var sidebarContainer = firstOf([...context.getElementsByTagName("header")].filter(function(header) {
         return header.getAttribute("role") == "banner";
@@ -223,7 +223,7 @@ function findLeftSidebar(context) {
 }
 
 
-//Searches the context element for the right sidebar.
+//Searches the context element for the right sidebar. Returns null if not found.
 function findRightSidebar(context) {
     return firstOf([...context.getElementsByTagName("div")].filter(function(div) {
         return div.getAttribute("data-testid") == "sidebarColumn";
@@ -231,7 +231,7 @@ function findRightSidebar(context) {
 }
 
 
-//Searches the context element for the search bar.
+//Searches the context element for the search bar. Returns null if not found.
 function findSearchBar(context) {
     return getParent(firstOf([...context.getElementsByTagName("form")].filter(function(form) {
         return form.getAttribute("role") == "search";
@@ -333,6 +333,9 @@ function handlePage(mainContainer, location) {
         case "status":
             handleConversationPage(mainContainer);
             break;
+        case "explore":
+            handleExplorePage(mainContainer);
+            break;
         default:
             break;
     }
@@ -340,19 +343,19 @@ function handlePage(mainContainer, location) {
 
 
 function handleMainPage(context) {
-    console.log("Handle main page");
+    //console.log("Handle main page");
 
     waitForElement(context, true, findTweetsSection, function(tweetsSection) {
         replaceLinks(tweetsSection);
         removePromotedTweets(tweetsSection);
 
         var tweetObserver = new MutationObserver(function(mutationsList, observer) {
-            console.log("Tweet mutations at " + Date.now());
+            //console.log("Tweet mutations at " + Date.now());
     
             removePromotedTweets(tweetsSection);
             replaceLinks(tweetsSection);
     
-            console.log("Mutations handled");
+            //console.log("Mutations handled");
         });
     
         tweetObserver.observe(tweetsSection, { attributes: false, childList: true, subtree: true });
@@ -368,7 +371,7 @@ function handleMainPage(context) {
 
 
 function handleConversationPage(context) {
-    console.log("Handle conversation page");
+    //console.log("Handle conversation page");
 
     //Squash conversation box
     waitForElement(context, true,
@@ -377,6 +380,7 @@ function handleConversationPage(context) {
                 return article.getAttribute("aria-label") == "Timeline: Conversation";
             }));
         },
+
         function(conversation) {
             conversation.style.marginLeft = "auto";
             conversation.style.marginRight = "auto";
@@ -390,6 +394,23 @@ function handleConversationPage(context) {
         
             mutationObserver.observe(conversation, { attributes: false, childList: true, subtree: true });
             pushMutationObserver(mutationObserver);
+        }
+    );
+}
+
+
+function handleExplorePage(context) {
+    waitForElement(context, true,
+        function(context) {
+            return getParent(firstOf([...context.getElementsByTagName("form")].filter(function(form) {
+                return form.getAttribute("role") == "search";
+            })), 1);
+        },
+
+        function(searchBarContainer) {
+            searchBarContainer.style.width = "80%";
+            searchBarContainer.style.marginLeft = "auto";
+            searchBarContainer.style.marginRight = "auto";
         }
     );
 }
