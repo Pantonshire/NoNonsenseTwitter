@@ -130,7 +130,7 @@ function waitForElement(context, pageDependent, findElement, onFound) {
 
 //Run a task when elements are successfully found by all of the given functions.
 //If pageDependent is true, the mutation observer will be added to the global mutationObservers array.
-function waitForElements(context, pageDependent, findElements, onFound, selfContained = false) {
+function waitForElements(context, pageDependent, findElements, onFound) {
     var elements = findElements.map(function(findElement) { return findElement(context); });
 
     if(elements.includes(null)) {
