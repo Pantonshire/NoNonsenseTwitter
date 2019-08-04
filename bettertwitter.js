@@ -3,8 +3,11 @@ console.log("Starting Better Twitter " + startTime);
 
 
 var accessibleListRe = /accessible-list-\d+/;
+
 var analyticsRe = new RegExp("https:\/\/t\.co\/.*");
 var linkCheckedClass = "btchecked";
+
+var statusLocationRe = /^\/.+\/status\/\d+/;
 
 var customCSS = `
     div[data-testid="sidebarColumn"] {
@@ -21,10 +24,14 @@ var customCSS = `
 `;
 
 
+var currentLocation = "none";
+var mutationObservers = [];
+
+
 //Returns the parent of the element the specified number of layers up the DOM tree, where 1 would be the
 //direct parent of the element.
 function getParent(element, layer) {
-    if(element == null) {
+    if(element === null) {
         return null;
     }
 
@@ -32,7 +39,7 @@ function getParent(element, layer) {
     
     for(i = 0; i < layer; i++) {
         currentElement = currentElement.parentElement;
-        if(currentElement == null) {
+        if(currentElement === null) {
             return null;
         }
     }
@@ -47,8 +54,56 @@ function firstOf(array) {
 }
 
 
+function findChild(context, childrenIndices) {
+    var currentElement = context;
+
+    for(i = 0; i < childrenIndices.length; i++) {
+        if(currentElement === null) {
+            return null;
+        }
+
+        if(childrenIndices[i] < currentElement.children.length) {
+            currentElement = currentElement.children[childrenIndices[i]]
+        }
+
+        else {
+            return null;
+        }
+    }
+
+    return currentElement;
+}
+
+
+function pushMutationObserver(observer) {
+    mutationObservers.push(observer);
+    console.log("Push operation: " + mutationObservers);
+}
+
+
+function removeMutationObserver(observer) {
+    var removeIndex = mutationObservers.indexOf(observer);
+    if(removeIndex > -1) {
+        observer.disconnect();
+        mutationObservers.splice(removeIndex, 1);
+    }
+    console.log("Remove operation: " + mutationObservers);
+}
+
+
+function clearMutationObservers() {
+    mutationObservers.forEach(function(oldObserver) {
+        oldObserver.disconnect();
+    });
+
+    mutationObservers = [];
+    console.log("Clear operation: " + mutationObservers);
+}
+
+
 //Run a task when an element is successfully found by the given function.
-function waitForElement(context, findElement, onFound) {
+//If pageDependent is true, the mutation observer will be added to the global mutationObservers array.
+function waitForElement(context, pageDependent, findElement, onFound) {
     var element = findElement(context);
 
     if(element) {
@@ -60,10 +115,19 @@ function waitForElement(context, findElement, onFound) {
             element = findElement(context);
 
             if(element) {
-                observer.disconnect();
+                if(pageDependent) {
+                    removeMutationObserver(observer);
+                } else {
+                    observer.disconnect();
+                }
+                
                 onFound(element);
             }
         });
+
+        if(pageDependent) {
+            pushMutationObserver(mutationObserver);
+        }
 
         mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
     }
@@ -71,7 +135,8 @@ function waitForElement(context, findElement, onFound) {
 
 
 //Run a task when elements are successfully found by all of the given functions.
-function waitForElements(context, findElements, onFound) {
+//If pageDependent is true, the mutation observer will be added to the global mutationObservers array.
+function waitForElements(context, pageDependent, findElements, onFound, selfContained = false) {
     var elements = findElements.map(function(findElement) { return findElement(context); });
 
     if(elements.includes(null)) {
@@ -83,10 +148,19 @@ function waitForElements(context, findElements, onFound) {
             }
 
             if(!elements.includes(null)) {
-                observer.disconnect();
+                if(pageDependent) {
+                    removeMutationObserver(observer);
+                } else {
+                    observer.disconnect();
+                }
+
                 onFound(elements);
             }
         });
+
+        if(pageDependent) {
+            pushMutationObserver(mutationObserver);
+        }
 
         mutationObserver.observe(context, { attributes: false, childList: true, subtree: true });
     }
@@ -97,8 +171,19 @@ function waitForElements(context, findElements, onFound) {
 }
 
 
-function getCurrentPath() {
-    return window.location.pathname;
+function getLocation() {
+    var pathName = window.location.pathname;
+    if(pathName == "/home") { return "home"; }
+    else if(pathName == "/explore") { return "explore"; }
+    else if(pathName == "/notifications") { return "notifications"; }
+    else if(pathName == "/messages") { return "messages-home"; }
+    else if(pathName.startsWith("/messages")) { return "messages-read"; }
+    else if(pathName == "/i/bookmarks") { return "bookmarks"; }
+    else if(pathName == "/compose/tweet") { return "tweet"; }
+    else if(pathName == "/search-advanced") { return "advanced-search"; }
+    else if(pathName.startsWith("/search")) { return "search"; }
+    else if(statusLocationRe.exec(pathName)) { return "status"; }
+    return pathName;
 }
 
 
@@ -238,6 +323,56 @@ function addCustomCSS() {
 }
 
 
+function handlePage(mainContainer, location) {
+    switch(location) {
+        case "home":
+            handleMainPage(mainContainer);
+            break;
+        case "status":
+            handleConversationPage(mainContainer);
+            break;
+        default:
+            break;
+    }
+}
+
+
+function handleMainPage(context) {
+    console.log("Handle main page");
+
+    //todo: add any mutation observers to observers array
+
+    // waitForElement(context, true, findTweetsSection, function(tweetsSection) {
+
+    // });
+
+    waitForElement(context, true, findComposeBox, function(composeBox) {
+        composeBox.style.width = "80%";
+        composeBox.style.marginLeft = "auto";
+        composeBox.style.marginRight = "auto";
+    });
+}
+
+
+function handleConversationPage(context) {
+    console.log("Handle conversation page");
+
+    //Squash conversation box
+    waitForElement(context, true,
+        function(context) {
+            return firstOf([...context.getElementsByTagName("div")].filter(function(article) {
+                return article.getAttribute("aria-label") == "Timeline: Conversation";
+            }));
+        },
+        function(conversation) {
+            conversation.style.marginLeft = "auto";
+            conversation.style.marginRight = "auto";
+            conversation.style.width = "80%";
+        }
+    );
+}
+
+
 function runBetterTwitter(tweets) {
     replaceLinks(tweets);
     removePromotedTweets(tweets);
@@ -294,26 +429,36 @@ function runTestVersion() {
 
 addCustomCSS();
 
-waitForElement(document, findMainStaticContainer, function(mainContainer) {
 
+waitForElement(document, false, findMainStaticContainer, function(mainContainer) {
+    currentLocation = getLocation();
+    handlePage(mainContainer, currentLocation);
+
+    var mainMutationObserver = new MutationObserver(function(mutationsList, observer) {
+        var newLocation = getLocation();
+
+        if(newLocation != currentLocation) {
+            currentLocation = newLocation;
+            clearMutationObservers();
+            handlePage(mainContainer, newLocation);
+        }
+    });
+
+    mainMutationObserver.observe(mainContainer, { attributes: false, childList: true, subtree: true });
 });
 
-waitForElements(document, [findLeftSidebar, findRightSidebar], function(elements) {
+
+waitForElements(document, false, [findLeftSidebar, findRightSidebar], function(elements) {
     var leftSidebar = elements[0];
     var rightSidebar = elements[1];
 
-    waitForElement(rightSidebar, findSearchBar, function(searchBar) {
-        moveSearchBar(leftSidebar, searchBar);
-    });
+    // Search bar currently does not work when moved
+    // waitForElement(rightSidebar, findSearchBar, function(searchBar) {
+    //     moveSearchBar(leftSidebar, searchBar);
+    // });
 
     addLeftSidebarBorder(leftSidebar);
     reduceSidebarTextSize(leftSidebar);
-});
-
-waitForElement(document, findComposeBox, function(composeBox) {
-    composeBox.style.width = "80%";
-    composeBox.style.marginLeft = "auto";
-    composeBox.style.marginRight = "auto";
 });
 
 
