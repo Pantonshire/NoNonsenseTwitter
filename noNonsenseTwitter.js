@@ -281,8 +281,24 @@ function removePromotedTweets(context) {
 
 //Adds a left border to the specified sidebar.
 function addLeftSidebarBorder(context) {
+    var colour;
+    switch(document.body.style.backgroundColor) {
+        //Dim
+        case "rgb(21, 32, 43)":
+            colour = "rgb(56, 68, 77)";
+            break;
+        //Lights out
+        case "rgb(0, 0, 0)":
+            colour = "rgb(47, 51, 54)";
+            break;
+        //Default
+        default:
+            colour = "rgb(230, 236, 240)";
+            break;
+    }
+
     var outerLeftSidebar = getParent(context, 1);
-    outerLeftSidebar.style.borderColor = "rgb(230, 236, 240)";
+    outerLeftSidebar.style.borderColor = colour;
     outerLeftSidebar.style.borderStyle = "solid";
     outerLeftSidebar.style.borderLeftWidth = "1px";
 }
