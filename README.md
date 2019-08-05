@@ -12,6 +12,8 @@ Promoted tweets that load on your timeline will be hidden so that you will only 
 ### Remove Twitter Analytics (mostly)
 Normally, when you click a link on Twitter, you will be redirected to Twitter Analytics. This takes time and, to be honest, it's a bit creepy, so No Nonsense Twitter removes Twitter Analytics from links wherever possible. This currently only works for text links on your main timeline (see [issue 1](https://github.com/Pantonshire/NoNonsenseTwitter/issues/1) and [issue 3](https://github.com/Pantonshire/NoNonsenseTwitter/issues/3), but all links should be supported in the future.
 
+![The Twitter homepage with the No Nonsense Twitter add-on. The right sidebar featuring the "trends for you" section has been removed, and other aspects of the page have been tweaked to make it cleaner to look at.](https://github.com/Pantonshire/NoNonsenseTwitter/blob/master/screenshots/noNonsenseTwitter-1.0.png?raw=true)
+
 ## Installation
 
 ### Installing from xpi file
