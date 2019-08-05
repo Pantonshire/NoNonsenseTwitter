@@ -15,7 +15,7 @@ Normally, when you click a link on Twitter, you will be redirected to Twitter An
 ## Installation
 
 ### Installing from xpi file
-- [Download the extension file from here](https://github.com/Pantonshire/NoNonsenseTwitter/blob/master/builds/no_nonsense_twitter-1.0-fx.xpi).
+- [Download the extension file from here](https://github.com/Pantonshire/NoNonsenseTwitter/blob/master/builds/no_nonsense_twitter-1.0-fx.xpi), or find it in the builds folder if you have cloned or downloaded the repository.
 - In Firefox, go to Add-ons (about:addons).
 - Click the gear icon and choose "install add-on from file".
 - Choose the downloaded xpi file.
