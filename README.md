@@ -16,11 +16,11 @@ Normally, when you click a link on Twitter, you will be redirected to Twitter An
 
 ## Installation
 
+### Installing from AMO
+No Nonsense Twitter is [now available on the AMO here](https://addons.mozilla.org/en-US/firefox/addon/no-nonsense-twitter/)!
+
 ### Installing from xpi file
 - [Download the extension file from here](https://github.com/Pantonshire/NoNonsenseTwitter/blob/master/builds/firefox/no_nonsense_twitter-1.0.xpi), or find it in the builds folder if you have cloned or downloaded the repository.
 - In Firefox, go to Add-ons (about:addons).
 - Click the gear icon and choose "install add-on from file".
 - Choose the downloaded xpi file.
-
-### Installing from AMO
-No Nonsense Twitter is currently awaiting review, and should hopefully be available on AMO soon.
